@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
-
-# Copyright (C) 2008-2012 Michael Daum http://michaeldaumconsulting.com
+#
+# Copyright (C) 2008-2013 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -22,8 +22,8 @@ use Foswiki::Func ();
 use Foswiki::Sandbox() ;
 use Encode ();
 
-our $VERSION = '$Rev$';
-our $RELEASE = '3.1';
+our $VERSION = '3.20';
+our $RELEASE = '3.20';
 our $SHORTDESCRIPTION = 'Render <nop>WikiApplications asynchronously';
 our $NO_PREFS_IN_TOPIC = 1;
 
@@ -56,7 +56,12 @@ sub restRender {
   my $theWeb = $query->param('web') || $session->{webName};
   my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
 
-  return Foswiki::Func::renderText(restExpand($session, $subject, $verb), $web);
+  my $result = Foswiki::Func::renderText(restExpand($session, $subject, $verb), $web);
+
+  my $contentType = $query->param("contenttype");
+  $session->writeCompletePage($result, undef, $contentType);
+
+  return;
 }
 
 ###############################################################################
@@ -75,7 +80,12 @@ sub restExpand {
   my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
 
   # and render it
-  return Foswiki::Func::expandCommonVariables($theText, $topic, $web) || ' ';
+  my $result = Foswiki::Func::expandCommonVariables($theText, $topic, $web) || ' ';
+
+  my $contentType = $query->param("contenttype");
+  $session->writeCompletePage($result, undef, $contentType);
+
+  return;
 }
 
 ###############################################################################
@@ -108,7 +118,10 @@ sub restTemplate {
     $result = Foswiki::Func::renderText($result, $web);
   }
 
-  return $result;
+  my $contentType = $query->param("contenttype");
+  $session->writeCompletePage($result, undef, $contentType);
+
+  return;
 }
 
 ###############################################################################
@@ -153,7 +166,10 @@ sub restTag {
 
   #writeDebug("result=$result");
 
-  return $result;
+  my $contentType = $query->param("contenttype");
+  $session->writeCompletePage($result, undef, $contentType);
+
+  return;
 }
 
 1;

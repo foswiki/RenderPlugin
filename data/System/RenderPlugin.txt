@@ -1,22 +1,10 @@
-%META:TOPICINFO{author="ProjectContributor" date="1311320241" format="1.1" version="3"}%
+%META:TOPICINFO{author="ProjectContributor" comment="autosave" date="1356278778" format="1.1" version="4"}%
 ---+!! %TOPIC%
-<!--
-One line description, required for extensions repository catalog.
-   * Set SHORTDESCRIPTION = Render <nop>WikiApplications asynchronously
--->
 %SHORTDESCRIPTION%
 
 %TOC%
 
 ---++ Description
-<table style="float:right">
-<tr>
-  <td><img src="%ATTACHURLPATH%/wikiringlogo40x40.png" title="Make your Wiki ring!" alt="WikiRing"></td>
-  <td><a href="http://wikiring.com" title="Make your Wiki ring!" style="text-decoration:none">
-      Powered by <br /> <nop>WikiRing Consultants </a>
-  </td>
-</tr>
-</table>
 This plugin implements three simple REST handlers to get content from Foswiki.
 For example, these can be used to easily replace a server-side INCLUDE with a
 functional equivalent using an ajax call to one of these REST handlers. 
@@ -147,13 +135,18 @@ Okay, your turn to create an example calling SEARCH.
 %$INSTALL_INSTRUCTIONS%
 
 ---++ Plugin Info
+<!--
+One line description, required for extensions repository catalog.
+   * Set SHORTDESCRIPTION = Render <nop>WikiApplications asynchronously
+-->
 
 |  Plugin Author: | Michael Daum |
-|  Copyright &copy;: | 2006-2012, Michael Daum http://michaeldaumconsulting.com |
+|  Copyright &copy;: | 2006-2013, Michael Daum http://michaeldaumconsulting.com |
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |
 |  Release: | %$RELEASE% |
 |  Version: | %$VERSION% |
 |  Change History: | <!-- versions below in reverse order -->&nbsp; |
+|  01 Nov 2013: | added support for =contenttype= url parameter | 
 |  10 Jan 2012: | some docu fixes |
 |  12 May 2009: | added =template= handler |
 |  24 Apr 2009: | converted to foswiki plugin |
@@ -164,4 +157,3 @@ Okay, your turn to create an example calling SEARCH.
 |  Plugin Home: | Foswiki:Extensions/%TOPIC% |
 |  Support: | Foswiki:Support/%TOPIC% |
 
-%META:FILEATTACHMENT{name="wikiringlogo40x40.png" attachment="wikiringlogo40x40.png" attr="h" comment="" date="1189787359" path="wikiringlogo40x40.png" size="2571" stream="wikiringlogo40x40.png" tmpFilename="" user="ProjectContributor" version="1"}%
