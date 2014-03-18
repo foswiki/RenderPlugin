@@ -141,11 +141,12 @@ One line description, required for extensions repository catalog.
 -->
 
 |  Plugin Author: | Michael Daum |
-|  Copyright &copy;: | 2006-2013, Michael Daum http://michaeldaumconsulting.com |
+|  Copyright &copy;: | 2006-2014, Michael Daum http://michaeldaumconsulting.com |
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |
 |  Release: | %$RELEASE% |
 |  Version: | %$VERSION% |
 |  Change History: | <!-- versions below in reverse order -->&nbsp; |
+|  18 Mar 2014: | removed duplicate http header from =render= rest handler |
 |  01 Nov 2013: | added support for =contenttype= url parameter | 
 |  10 Jan 2012: | some docu fixes |
 |  12 May 2009: | added =template= handler |

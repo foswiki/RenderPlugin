@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2008-2013 Michael Daum http://michaeldaumconsulting.com
+# Copyright (C) 2008-2014 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -22,8 +22,8 @@ use Foswiki::Func ();
 use Foswiki::Sandbox() ;
 use Encode ();
 
-our $VERSION = '3.20';
-our $RELEASE = '3.20';
+our $VERSION = '3.21';
+our $RELEASE = '3.21';
 our $SHORTDESCRIPTION = 'Render <nop>WikiApplications asynchronously';
 our $NO_PREFS_IN_TOPIC = 1;
 
@@ -52,11 +52,17 @@ sub restRender {
   my ($session, $subject, $verb) = @_;
 
   my $query = Foswiki::Func::getCgiQuery();
+  my $theText = $query->param('text') || '';
+
+  return ' ' unless $theText; # must return at least on char as we get a
+                              # premature end of script otherwise
+
   my $theTopic = $query->param('topic') || $session->{topicName};
   my $theWeb = $query->param('web') || $session->{webName};
   my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
 
-  my $result = Foswiki::Func::renderText(restExpand($session, $subject, $verb), $web);
+  my $result = Foswiki::Func::expandCommonVariables($theText, $topic, $web) || ' ';
+  $result = Foswiki::Func::renderText($result, $web);
 
   my $contentType = $query->param("contenttype");
   $session->writeCompletePage($result, undef, $contentType);
