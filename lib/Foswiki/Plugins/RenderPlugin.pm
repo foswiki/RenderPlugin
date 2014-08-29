@@ -22,16 +22,16 @@ use Foswiki::Func ();
 use Foswiki::Sandbox() ;
 use Encode ();
 
-our $VERSION = '3.21';
-our $RELEASE = '3.21';
+our $VERSION = '3.22';
+our $RELEASE = '3.22';
 our $SHORTDESCRIPTION = 'Render <nop>WikiApplications asynchronously';
 our $NO_PREFS_IN_TOPIC = 1;
 
-use constant DEBUG => 0; # toggle me
+use constant TRACE => 0; # toggle me
 
 ###############################################################################
 sub writeDebug {
-  print STDERR '- RenderPlugin - '.$_[0]."\n" if DEBUG;
+  print STDERR '- RenderPlugin - '.$_[0]."\n" if TRACE;
 }
 
 
@@ -39,10 +39,29 @@ sub writeDebug {
 sub initPlugin {
   my ($topic, $web, $user, $installWeb) = @_;
 
-  Foswiki::Func::registerRESTHandler('tag', \&restTag, authenticate => 0);
-  Foswiki::Func::registerRESTHandler('template', \&restTemplate, authenticate => 0);
-  Foswiki::Func::registerRESTHandler('expand', \&restExpand, authenticate => 0);
-  Foswiki::Func::registerRESTHandler('render', \&restRender, authenticate => 0);
+  Foswiki::Func::registerRESTHandler('tag', \&restTag, 
+    authenticate => 0,
+    validate => 0,
+    http_allow => 'GET,POST',
+  );
+
+  Foswiki::Func::registerRESTHandler('template', \&restTemplate, 
+    authenticate => 0,
+    validate => 0,
+    http_allow => 'GET,POST',
+  );
+
+  Foswiki::Func::registerRESTHandler('expand', \&restExpand, 
+    authenticate => 0,
+    validate => 0,
+    http_allow => 'GET,POST',
+  );
+
+  Foswiki::Func::registerRESTHandler('render', \&restRender,
+    authenticate => 0,
+    validate => 0,
+    http_allow => 'GET,POST',
+  );
 
   return 1;
 }
@@ -60,6 +79,8 @@ sub restRender {
   my $theTopic = $query->param('topic') || $session->{topicName};
   my $theWeb = $query->param('web') || $session->{webName};
   my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
+  $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
+  $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
 
   my $result = Foswiki::Func::expandCommonVariables($theText, $topic, $web) || ' ';
   $result = Foswiki::Func::renderText($result, $web);
@@ -84,6 +105,8 @@ sub restExpand {
   my $theTopic = $query->param('topic') || $session->{topicName};
   my $theWeb = $query->param('web') || $session->{webName};
   my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
+  $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
+  $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
 
   # and render it
   my $result = Foswiki::Func::expandCommonVariables($theText, $topic, $web) || ' ';
@@ -108,6 +131,8 @@ sub restTemplate {
   my $theTopic = $query->param('topic') || $session->{topicName};
   my $theWeb = $query->param('web') || $session->{webName};
   my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
+  $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
+  $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
 
   Foswiki::Func::loadTemplate($theTemplate);
 
@@ -148,6 +173,8 @@ sub restTag {
   my $theTopic = $query->param('topic') || $session->{topicName};
   my $theWeb = $query->param('web') || $session->{webName};
   my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
+  $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
+  $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
 
   # construct parameters for tag
   my $params = $theDefault?'"'.$theDefault.'"':'';

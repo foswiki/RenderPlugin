@@ -146,6 +146,7 @@ One line description, required for extensions repository catalog.
 |  Release: | %$RELEASE% |
 |  Version: | %$VERSION% |
 |  Change History: | <!-- versions below in reverse order -->&nbsp; |
+|  04 Apr 2014: | flag rest handlers that don't require authentication |
 |  18 Mar 2014: | removed duplicate http header from =render= rest handler |
 |  01 Nov 2013: | added support for =contenttype= url parameter | 
 |  10 Jan 2012: | some docu fixes |
