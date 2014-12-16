@@ -22,8 +22,8 @@ use Foswiki::Func ();
 use Foswiki::Sandbox() ;
 use Encode ();
 
-our $VERSION = '3.22';
-our $RELEASE = '3.22';
+our $VERSION = '3.21';
+our $RELEASE = '3.21';
 our $SHORTDESCRIPTION = 'Render <nop>WikiApplications asynchronously';
 our $NO_PREFS_IN_TOPIC = 1;
 
@@ -144,7 +144,7 @@ sub restTemplate {
   # and render it
   my $result = Foswiki::Func::expandCommonVariables($tmpl, $topic, $web) || ' ';
 
-  my $theRender = Foswiki::Func::isTrue($query->param('render'),  0);
+  my $theRender = Foswiki::Func::isTrue(scalar $query->param('render'),  0);
   if ($theRender) {
     $result = Foswiki::Func::renderText($result, $web);
   }
