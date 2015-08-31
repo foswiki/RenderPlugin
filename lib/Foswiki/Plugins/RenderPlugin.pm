@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2008-2014 Michael Daum http://michaeldaumconsulting.com
+# Copyright (C) 2008-2015 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -22,42 +22,55 @@ use Foswiki::Func ();
 use Foswiki::Sandbox() ;
 use Encode ();
 
-our $VERSION = '3.21';
-our $RELEASE = '3.21';
+our $VERSION = '4.00';
+our $RELEASE = '31 Aug 2015';
 our $SHORTDESCRIPTION = 'Render <nop>WikiApplications asynchronously';
 our $NO_PREFS_IN_TOPIC = 1;
+our $core;
 
-use constant TRACE => 0; # toggle me
-
-###############################################################################
-sub writeDebug {
-  print STDERR '- RenderPlugin - '.$_[0]."\n" if TRACE;
-}
-
-
-###############################################################################
 sub initPlugin {
-  my ($topic, $web, $user, $installWeb) = @_;
+  $core = undef;
 
-  Foswiki::Func::registerRESTHandler('tag', \&restTag, 
+  Foswiki::Func::registerRESTHandler('tag', 
+    sub {
+      return getCore(shift)->restTag(@_);
+    }, 
     authenticate => 0,
     validate => 0,
     http_allow => 'GET,POST',
   );
 
-  Foswiki::Func::registerRESTHandler('template', \&restTemplate, 
+  Foswiki::Func::registerRESTHandler('template', 
+    sub {
+      return getCore(shift)->restTemplate(@_);
+    },
     authenticate => 0,
     validate => 0,
     http_allow => 'GET,POST',
   );
 
-  Foswiki::Func::registerRESTHandler('expand', \&restExpand, 
+  Foswiki::Func::registerRESTHandler('expand', 
+    sub {
+      return getCore(shift)->restExpand(@_);
+    },
     authenticate => 0,
     validate => 0,
     http_allow => 'GET,POST',
   );
 
-  Foswiki::Func::registerRESTHandler('render', \&restRender,
+  Foswiki::Func::registerRESTHandler('render', 
+    sub {
+      return getCore(shift)->restRender(@_);
+    },
+    authenticate => 0,
+    validate => 0,
+    http_allow => 'GET,POST',
+  );
+
+  Foswiki::Func::registerRESTHandler('jsonTemplate', 
+    sub {
+      return getCore(shift)->restJsonTemplate(@_);
+    },
     authenticate => 0,
     validate => 0,
     http_allow => 'GET,POST',
@@ -66,143 +79,16 @@ sub initPlugin {
   return 1;
 }
 
-###############################################################################
-sub restRender {
-  my ($session, $subject, $verb) = @_;
+sub getCore {
+  my $session = shift;
 
-  my $query = Foswiki::Func::getCgiQuery();
-  my $theText = $query->param('text') || '';
-
-  return ' ' unless $theText; # must return at least on char as we get a
-                              # premature end of script otherwise
-
-  my $theTopic = $query->param('topic') || $session->{topicName};
-  my $theWeb = $query->param('web') || $session->{webName};
-  my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
-  $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
-  $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
-
-  my $result = Foswiki::Func::expandCommonVariables($theText, $topic, $web) || ' ';
-  $result = Foswiki::Func::renderText($result, $web);
-
-  my $contentType = $query->param("contenttype");
-  $session->writeCompletePage($result, undef, $contentType);
-
-  return;
-}
-
-###############################################################################
-sub restExpand {
-  my ($session, $subject, $verb) = @_;
-
-  # get params
-  my $query = Foswiki::Func::getCgiQuery();
-  my $theText = $query->param('text') || '';
-
-  return ' ' unless $theText; # must return at least on char as we get a
-                              # premature end of script otherwise
-
-  my $theTopic = $query->param('topic') || $session->{topicName};
-  my $theWeb = $query->param('web') || $session->{webName};
-  my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
-  $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
-  $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
-
-  # and render it
-  my $result = Foswiki::Func::expandCommonVariables($theText, $topic, $web) || ' ';
-
-  my $contentType = $query->param("contenttype");
-  $session->writeCompletePage($result, undef, $contentType);
-
-  return;
-}
-
-###############################################################################
-sub restTemplate {
-  my ($session, $subject, $verb) = @_;
-
-  my $query = Foswiki::Func::getCgiQuery();
-  my $theTemplate = $query->param('name');
-  return '' unless $theTemplate;
-
-  my $theExpand = $query->param('expand');
-  return '' unless $theExpand;
-
-  my $theTopic = $query->param('topic') || $session->{topicName};
-  my $theWeb = $query->param('web') || $session->{webName};
-  my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
-  $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
-  $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
-
-  Foswiki::Func::loadTemplate($theTemplate);
-
-  require Foswiki::Attrs;
-  my $attrs = new Foswiki::Attrs($theExpand);
-
-  my $tmpl = $session->templates->tmplP($attrs);
-
-  # and render it
-  my $result = Foswiki::Func::expandCommonVariables($tmpl, $topic, $web) || ' ';
-
-  my $theRender = Foswiki::Func::isTrue(scalar $query->param('render'),  0);
-  if ($theRender) {
-    $result = Foswiki::Func::renderText($result, $web);
+  unless ($core) {
+    require Foswiki::Plugins::RenderPlugin::Core;
+    $core = Foswiki::Plugins::RenderPlugin::Core->new($session);
   }
 
-  my $contentType = $query->param("contenttype");
-  $session->writeCompletePage($result, undef, $contentType);
-
-  return;
+  return $core;
 }
 
-###############################################################################
-sub restTag {
-  my ($session, $subject, $verb) = @_;
-
-  #writeDebug("called restTag($subject, $verb)");
-
-  # get params
-  my $query = Foswiki::Func::getCgiQuery();
-
-  my $theTag = $query->param('name') || 'INCLUDE';
-  my $theDefault = $query->param('param') || '';
-  my $theRender = $query->param('render') || 0;
-
-  $theRender = ($theRender =~ /^\s*(1|on|yes|true)\s*$/) ? 1:0;
-
-  my $theTopic = $query->param('topic') || $session->{topicName};
-  my $theWeb = $query->param('web') || $session->{webName};
-  my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
-  $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
-  $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
-
-  # construct parameters for tag
-  my $params = $theDefault?'"'.$theDefault.'"':'';
-  foreach my $key ($query->param()) {
-    next if $key =~ /^(name|param|render|topic|XForms:Model)$/;
-    my $value = $query->param($key);
-    $params .= ' '.$key.'="'.$value.'" ';
-  }
-
-  # create TML expression
-  my $tml = '%'.$theTag;
-  $tml .= '{'.$params.'}' if $params;
-  $tml .= '%';
-
-  #writeDebug("tml=$tml");
-
-  # and render it
-  my $result = Foswiki::Func::expandCommonVariables($tml, $topic, $web) || ' ';
-  if ($theRender) {
-    $result = Foswiki::Func::renderText($result, $web);
-  }
-
-  #writeDebug("result=$result");
-
-  my $contentType = $query->param("contenttype");
-  $session->writeCompletePage($result, undef, $contentType);
-
-  return;
-}
 
 1;

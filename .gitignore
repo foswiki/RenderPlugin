@@ -1,3 +1,4 @@
+*.gz
 *.swp
 RenderPlugin.md5
 RenderPlugin.sha1
@@ -6,3 +7,4 @@ RenderPlugin.txt
 RenderPlugin.zip
 RenderPlugin_installer
 RenderPlugin_installer.pl
+pub/System/RenderPlugin/foswikiTemplate.js

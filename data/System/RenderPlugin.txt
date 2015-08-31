@@ -44,6 +44,7 @@ The available REST handlers are:
   <nop>TopicMarkup |
 | =template= | =name=, %BR% =expand=, %BR% =render= | this handler loads the template =name= and expands the macro \
   given in =expand=; the =render= flag indicates whether the result is to be rendered in addition to common tags being interpreted |
+| =jsonTemplate= | =name=, %BR%, =expand=, %BR% =render= | same as =template= handler, but returns a json object holding css and js zones required to properly format the template; used via =foswiki.loadTemplate()= |
 
 ---++ Usage
 The REST handlers are called like this:
@@ -140,12 +141,8 @@ One line description, required for extensions repository catalog.
    * Set SHORTDESCRIPTION = Render <nop>WikiApplications asynchronously
 -->
 
-|  Plugin Author: | Michael Daum |
-|  Copyright &copy;: | 2006-2014, Michael Daum http://michaeldaumconsulting.com |
-|  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |
-|  Release: | %$RELEASE% |
-|  Version: | %$VERSION% |
 |  Change History: | <!-- versions below in reverse order -->&nbsp; |
+|  31 Aug 2015: | implemeted JSON-Template REST handler |
 |  04 Apr 2014: | flag rest handlers that don't require authentication |
 |  18 Mar 2014: | removed duplicate http header from =render= rest handler |
 |  01 Nov 2013: | added support for =contenttype= url parameter | 
@@ -156,6 +153,13 @@ One line description, required for extensions repository catalog.
                   fixes for foswiki and <nop>FastCGIContrib |
 |  11 Jul 2008: | initial version |
 |  Dependencies: | %$DEPENDENCIES% |
-|  Plugin Home: | Foswiki:Extensions/%TOPIC% |
-|  Support: | Foswiki:Support/%TOPIC% |
 
+%META:FORM{name="PackageForm"}%
+%META:FIELD{name="Author" title="Author" value="Michael Daum"}%
+%META:FIELD{name="Copyright" title="Copyright" value="2006-2015, Michael Daum http://michaeldaumconsulting.com"}%
+%META:FIELD{name="Home" title="Home" value="Foswiki:Extensions/%TOPIC%"}%
+%META:FIELD{name="License" title="License" value="GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]])"}%
+%META:FIELD{name="Release" title="Release" value="%$RELEASE%"}%
+%META:FIELD{name="Repository" title="Repository" value="https://github.com/foswiki/RenderPlugin"}%
+%META:FIELD{name="Support" title="Support" value="Foswiki:Support/%TOPIC%"}%
+%META:FIELD{name="Version" title="Version" value="%$VERSION%"}%
