@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2008-2015 Michael Daum http://michaeldaumconsulting.com
+# Copyright (C) 2008-2016 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -58,23 +58,15 @@ sub json {
 sub getZoneObject {
   my ($this, $zone, $meta) = @_;
 
-  my @total;
-  my %visited;
-  my @zoneIDs = values %{$this->{session}{_zones}{$zone}};
-
-  foreach my $zoneID (@zoneIDs) {
-    $this->{session}->_visitZoneID($zoneID, \%visited, \@total);
-  }
-
   my @zone = ();
   my $excludeFromZone = $Foswiki::cfg{AngularPlugin}{ExcludeFromZone} || $Foswiki::cfg{RenderPlugin}{ExcludeFromZone};
 
-  foreach my $item (grep { $_->{text} } @total) {
+  foreach my $item (grep { $_->{text} } $this->getZoneItems($zone)) {
     if ($excludeFromZone && $item->{id} =~ /$excludeFromZone/g) {
       #print STDERR "excluding $item->{id}\n"; 
       next;
     }
-    #print STDERR "loading $item->{id}\n"; 
+    #print STDERR "id=$item->{id}\n"; 
     my @requires = map { $_->{id} } @{$item->{requires}};
 
     my $text = $meta->renderTML($meta->expandMacros($item->{text}));
@@ -88,6 +80,32 @@ sub getZoneObject {
   }
 
   return \@zone;
+}
+
+###############################################################################
+sub getZoneItems {
+  my ($this, $zone) = @_;
+
+  my $session = $Foswiki::Plugins::SESSION;
+  my $zonesHandler;
+
+  if ($session->can("zones")) {
+    # Foswiki > 2.0.3: zones are stored in a sub-component
+    $zonesHandler = $session->zones();
+  } else {
+    # Foswiki <= 2.0.3: zones are stored in the session object
+    $zonesHandler = $session;
+  }
+
+  my @zoneItems = values %{$zonesHandler->{_zones}{$zone}};
+  my %visited = ();
+  my @result = ();
+
+  foreach my $item (@zoneItems) {
+    $zonesHandler->_visitZoneID($item, \%visited, \@result);
+  }
+
+  return @result;
 }
 
 ###############################################################################

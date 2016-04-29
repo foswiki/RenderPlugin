@@ -1,5 +1,5 @@
 /*
- * foswiki template loader 1.0
+ * foswiki template loader 1.1
  *
  * (c)opyright 2015 Michael Daum http://michaeldaumconsulting.com
  *
@@ -26,7 +26,7 @@
 
     self.successFunc = opts.success || function() {},
     self.errorFunc = opts.error || function() {},
-    self.url = opts.url || foswiki.getPreference("SCRIPTURL")+"/rest/RenderPlugin/jsonTemplate";
+    self.url = opts.url || foswiki.getScriptUrl("rest", "RenderPlugin", "jsonTemplate");
 
     delete opts.success;
     delete opts.error;

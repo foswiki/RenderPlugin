@@ -1,6 +1,6 @@
 %META:TOPICINFO{author="ProjectContributor" comment="autosave" date="1356278778" format="1.1" version="4"}%
 ---+!! %TOPIC%
-%SHORTDESCRIPTION%
+%FORMFIELD{"Description"}%
 
 %TOC%
 
@@ -135,13 +135,11 @@ Okay, your turn to create an example calling SEARCH.
 ---++ Installation Instructions
 %$INSTALL_INSTRUCTIONS%
 
----++ Plugin Info
-<!--
-One line description, required for extensions repository catalog.
-   * Set SHORTDESCRIPTION = Render <nop>WikiApplications asynchronously
--->
+---++ Dependencies
+%$DEPENDENCIES%
 
-|  Change History: | <!-- versions below in reverse order -->&nbsp; |
+---++ Change History
+|  29 Apr 2016: | added support for newer Foswiki engines |
 |  31 Aug 2015: | implemeted JSON-Template REST handler |
 |  04 Apr 2014: | flag rest handlers that don't require authentication |
 |  18 Mar 2014: | removed duplicate http header from =render= rest handler |
@@ -152,11 +150,11 @@ One line description, required for extensions repository catalog.
 |  07 Jan 2009: | added upload rest handler; \
                   fixes for foswiki and <nop>FastCGIContrib |
 |  11 Jul 2008: | initial version |
-|  Dependencies: | %$DEPENDENCIES% |
 
 %META:FORM{name="PackageForm"}%
 %META:FIELD{name="Author" title="Author" value="Michael Daum"}%
-%META:FIELD{name="Copyright" title="Copyright" value="2006-2015, Michael Daum http://michaeldaumconsulting.com"}%
+%META:FIELD{name="Copyright" title="Copyright" value="2006-2016, Michael Daum http://michaeldaumconsulting.com"}%
+%META:FIELD{name="Description" title="Description" value="%25$SHORTDESCRIPTION%25"}%
 %META:FIELD{name="Home" title="Home" value="Foswiki:Extensions/%TOPIC%"}%
 %META:FIELD{name="License" title="License" value="GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]])"}%
 %META:FIELD{name="Release" title="Release" value="%$RELEASE%"}%
