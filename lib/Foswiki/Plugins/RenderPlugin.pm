@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2008-2016 Michael Daum http://michaeldaumconsulting.com
+# Copyright (C) 2008-2017 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -22,8 +22,8 @@ use Foswiki::Func ();
 use Foswiki::Sandbox() ;
 use Encode ();
 
-our $VERSION = '4.10';
-our $RELEASE = '29 Apr 2016';
+our $VERSION = '5.00';
+our $RELEASE = '16 Jan 2017';
 our $SHORTDESCRIPTION = 'Render <nop>WikiApplications asynchronously';
 our $NO_PREFS_IN_TOPIC = 1;
 our $core;

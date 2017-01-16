@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2008-2016 Michael Daum http://michaeldaumconsulting.com
+# Copyright (C) 2008-2017 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -153,6 +153,13 @@ sub restTag {
   #writeDebug("result=$result");
 
   my $contentType = $query->param("contenttype");
+  my $fileName = $query->param("filename");
+  if ($fileName) {
+    $this->{session}{response}->header(
+      -type => $contentType || "text/html",
+      -content_disposition => "attachment; filename=\"$fileName\"",
+    );
+  }
   $this->{session}->writeCompletePage($result, undef, $contentType);
 
   return;
@@ -179,6 +186,13 @@ sub restRender {
   $result = Foswiki::Func::renderText($result, $web, $topic);
 
   my $contentType = $query->param("contenttype");
+  my $fileName = $query->param("filename");
+  if ($fileName) {
+    $this->{session}{response}->header(
+      -type => $contentType || "text/html",
+      -content_disposition => "attachment; filename=\"$fileName\"",
+    );
+  }
   $this->{session}->writeCompletePage($result, undef, $contentType);
 
   return;
@@ -205,6 +219,13 @@ sub restExpand {
   my $result = Foswiki::Func::expandCommonVariables($theText, $topic, $web) || ' ';
 
   my $contentType = $query->param("contenttype");
+  my $fileName = $query->param("filename");
+  if ($fileName) {
+    $this->{session}{response}->header(
+      -type => $contentType || "text/html",
+      -content_disposition => "attachment; filename=\"$fileName\"",
+    );
+  }
   $this->{session}->writeCompletePage($result, undef, $contentType);
 
   return;
@@ -242,6 +263,13 @@ sub restTemplate {
   }
 
   my $contentType = $query->param("contenttype");
+  my $fileName = $query->param("filename");
+  if ($fileName) {
+    $this->{session}{response}->header(
+      -type => $contentType || "text/html",
+      -content_disposition => "attachment; filename=\"$fileName\"",
+    );
+  }
   $this->{session}->writeCompletePage($result, undef, $contentType);
 
   return;
