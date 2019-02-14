@@ -1,6 +1,8 @@
+!noci
 data/System/RenderPlugin.txt 0644
 lib/Foswiki/Plugins/RenderPlugin/Core.pm 0644
 lib/Foswiki/Plugins/RenderPlugin/DEPENDENCIES 0644
+lib/Foswiki/Plugins/RenderPlugin/FoswikiTemplate.pm 0644
 lib/Foswiki/Plugins/RenderPlugin.pm 0644
 pub/System/RenderPlugin/foswikiTemplate.js 0644
 pub/System/RenderPlugin/foswikiTemplate.js.gz 0644

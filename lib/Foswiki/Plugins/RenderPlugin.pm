@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2008-2017 Michael Daum http://michaeldaumconsulting.com
+# Copyright (C) 2008-2019 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -20,16 +20,19 @@ use warnings;
 
 use Foswiki::Func ();
 use Foswiki::Sandbox() ;
+use Foswiki::Plugins::JQueryPlugin ();
 use Encode ();
 
-our $VERSION = '5.00';
-our $RELEASE = '16 Jan 2017';
+our $VERSION = '6.00';
+our $RELEASE = '14 Feb 2019';
 our $SHORTDESCRIPTION = 'Render <nop>WikiApplications asynchronously';
 our $NO_PREFS_IN_TOPIC = 1;
 our $core;
 
 sub initPlugin {
   $core = undef;
+
+  Foswiki::Plugins::JQueryPlugin::registerPlugin('FoswikiTemplate', 'Foswiki::Plugins::RenderPlugin::FoswikiTemplate');
 
   Foswiki::Func::registerRESTHandler('tag', 
     sub {

@@ -1,7 +1,7 @@
 /*
- * foswiki template loader 1.1
+ * foswiki template loader 2.0
  *
- * (c)opyright 2015 Michael Daum http://michaeldaumconsulting.com
+ * (c)opyright 2015-2019 Michael Daum http://michaeldaumconsulting.com
  *
  * Dual licensed under the MIT and GPL licenses:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -14,6 +14,7 @@
    * globals
    */
   var defaultParams = {
+    "debug": true,
     "render": "on",
     "zones": "script, head"
   };
@@ -39,11 +40,14 @@
    * logging
    */
   Plugin.prototype.log = function() {
-    var self = this,
+    var self = this, args;
+
+    if (console && self.opts.debug) {
       args = $.makeArray(arguments);
 
-    args.unshift("JST: ");
-    $.log.apply(self, args);
+      args.unshift("JST: ");
+      console.log.apply(self, args);
+    }
   };
 
   /***************************************************************************
@@ -52,7 +56,7 @@
   Plugin.prototype.loadTemplate = function() {
     var self = this;
 
-    $.ajax({
+    return $.ajax({
       url: self.url,
       data: self.opts,
       dataType: "json",
@@ -82,7 +86,7 @@
 
         if (!item.id.match(/^(JQUERYPLUGIN::FOSWIKI::PREFERENCES)?$/)) {
           if ($(selector).length > 0) {
-            self.log("zone=",zoneName,"item ",item.id+" already loaded");
+            //self.log("zone=",zoneName,"item ",item.id+" already loaded");
           } else {
             self.log("... loading ",item.id,"to zone",zoneName);
             

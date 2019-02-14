@@ -1,4 +1,4 @@
-%META:TOPICINFO{author="ProjectContributor" comment="autosave" date="1356278778" format="1.1" version="4"}%
+%META:TOPICINFO{author="ProjectContributor" comment="" date="1550135056" format="1.1" version="1"}%
 ---+!! %TOPIC%
 %FORMFIELD{"Description"}%
 
@@ -140,6 +140,7 @@ Okay, your turn to create an example calling SEARCH.
 
 ---++ Change History
 %TABLE{columnwidths="7em" tablewidth="100%"}%
+|  14 Feb 2019: | make template loader available to javascript as a proper jQuery module | 
 |  16 Jan 2017: | added =filename= to rest handler to override it in the content-dispisition header |
 |  29 Apr 2016: | added support for newer Foswiki engines |
 |  31 Aug 2015: | implemeted JSON-Template REST handler |
