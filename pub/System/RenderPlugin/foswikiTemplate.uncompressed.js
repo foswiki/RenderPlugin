@@ -14,7 +14,7 @@
    * globals
    */
   var defaultParams = {
-    "debug": true,
+    "debug": false,
     "render": "on",
     "zones": "script, head"
   };
