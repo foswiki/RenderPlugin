@@ -1,5 +1,5 @@
 FOSWIKI_ROOT?=~/foswiki/core
-TARGET=foswikiTemplate.js
+TARGET=foswikiTemplate.js 
 
 -include $(FOSWIKI_ROOT)/pub/System/JQueryPlugin/Makefile.include
 

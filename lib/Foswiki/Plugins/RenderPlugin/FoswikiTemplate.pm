@@ -28,7 +28,7 @@ sub new {
     $class->SUPER::new(
       $session,
       name => 'FoswikiTemplate',
-      version => '1.1',
+      version => '2.2',
       author => 'Michael Daum',
       homepage => 'https://foswiki.org/Extensions/RenderPlugin',
       puburl => '%PUBURLPATH%/%SYSTEMWEB%/RenderPlugin',

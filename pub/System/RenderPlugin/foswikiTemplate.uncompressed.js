@@ -1,11 +1,9 @@
 /*
- * foswiki template loader 2.0
+ * foswiki template loader 2.21
  *
- * (c)opyright 2015-2019 Michael Daum http://michaeldaumconsulting.com
+ * (c)opyright 2015-2020 Michael Daum http://michaeldaumconsulting.com
  *
- * Dual licensed under the MIT and GPL licenses:
- *   http://www.opensource.org/licenses/mit-license.php
- *   http://www.gnu.org/licenses/gpl.html
+ * Licensed under the GPL license http://www.gnu.org/licenses/gpl.html
  *
  */
 (function($) {
@@ -15,37 +13,48 @@
    */
   var defaultParams = {
     "debug": false,
+    "expand": "on",
     "render": "on",
-    "zones": "script, head"
+    "zones": "script, head",
+    "async": false,
+    "cachecontrol": 0,
+    "success": function() {},
+    "error": function(response) {
+      console && console.error(response);
+    },
   };
 
   /***************************************************************************
    * class definition
    */
-  function Plugin(opts) {
+  function FoswikiTemplate(opts) {
     var self = this;
 
-    self.successFunc = opts.success || function() {},
-    self.errorFunc = opts.error || function() {},
-    self.url = opts.url || foswiki.getScriptUrl("rest", "RenderPlugin", "jsonTemplate");
+    self.opts = $.extend({
+      "topic": foswiki.getPreference("WEB")+"."+foswiki.getPreference("TOPIC")
+    }, defaultParams, opts);
 
-    delete opts.success;
-    delete opts.error;
-    delete opts.url;
+    self.successFunc = self.opts.success;
+    self.errorFunc = self.opts.error;
+    self.url = self.opts.url || foswiki.getScriptUrl("rest", "RenderPlugin", "jsonTemplate");
 
-    self.opts = $.extend({}, defaultParams, opts);
+    delete self.opts.success;
+    delete self.opts.error;
+    delete self.opts.url;
+
+    self.log("opts=",opts);
   };
 
   /***************************************************************************
    * logging
    */
-  Plugin.prototype.log = function() {
+  FoswikiTemplate.prototype.log = function() {
     var self = this, args;
 
     if (console && self.opts.debug) {
       args = $.makeArray(arguments);
 
-      args.unshift("JST: ");
+      args.unshift("FoswikiTemplate: ");
       console.log.apply(self, args);
     }
   };
@@ -53,19 +62,22 @@
   /***************************************************************************
    * loadTemplate
    */
-  Plugin.prototype.loadTemplate = function() {
+  FoswikiTemplate.prototype.loadTemplate = function() {
     var self = this;
 
     return $.ajax({
       url: self.url,
+      async: true,
       data: self.opts,
       dataType: "json",
       success: function(data, status, xhr) {
+        self.log("data=",data);
         self.processZones(data.zones);
         self.successFunc(data.expand, status, xhr);
       },
       error: function(xhr, status, error) {
-        self.errorFunc(xhr, status, error);
+        var response = xhr.responseText.replace(/^ERROR: .*\- /, "").replace(/ at .*/, "");
+        self.errorFunc(response);
       } 
     });
   };
@@ -73,12 +85,12 @@
   /***************************************************************************
    * processZone
    */
-  Plugin.prototype.processZones = function(zones) {
+  FoswikiTemplate.prototype.processZones = function(zones) {
     var self = this;
 
     $.each(zones, function(zoneName) {
         var zone = zones[zoneName],
-            zonePos = $("."+zoneName).last();
+            zonePos = $("."+zoneName).last(), text;
 
       $.each(zone, function(i) {
         var item = zone[i],
@@ -88,12 +100,15 @@
           if ($(selector).length > 0) {
             //self.log("zone=",zoneName,"item ",item.id+" already loaded");
           } else {
+            text = item.text;
+            if (self.opts.async) {
+              text = item.text.replace(/<script /g, "<script async ");
+            } else {
+              text = item.text;
+            }
             self.log("... loading ",item.id,"to zone",zoneName);
-            
-            // load async'ly 
-            window.setTimeout(function() {
-              zonePos.after(item.text);
-            });
+            self.log("text=",text);
+            zonePos.after(text);
           }
         }
       });
@@ -101,11 +116,35 @@
   };
 
   /***************************************************************************
-   * make globally available
+   * export
    */
   foswiki.loadTemplate = function(opts) {
-    var plugin = new Plugin(opts);
-    return plugin.loadTemplate();
+    var ft = new FoswikiTemplate(opts);
+    return ft.loadTemplate();
   };
+
+  /***************************************************************************
+   * foswikiDialogLink
+   */
+  $(document).on("click", ".foswikiDialogLink", function() {
+    var $this = $(this), 
+        href = $this.attr("href") || '',
+        opts = $.extend({
+          name: href.replace(/^#/, ""),
+          expand: "dialog"
+        }, $this.data());
+
+    foswiki.loadTemplate(opts).done(function(data) {
+      var $content = $(data.expand);
+
+      $content.hide();
+      $("body").append($content);
+      $content.data("autoOpen", true).on("dialogopen", function() {
+        $this.trigger("opened");
+       });
+    });
+
+    return false;
+  });
     
 })(jQuery);

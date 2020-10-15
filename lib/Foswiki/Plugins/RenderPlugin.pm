@@ -20,17 +20,17 @@ use warnings;
 
 use Foswiki::Func ();
 use Foswiki::Sandbox() ;
+use Foswiki::Attrs() ;
 use Foswiki::Plugins::JQueryPlugin ();
 use Encode ();
 
-our $VERSION = '6.00';
-our $RELEASE = '14 Feb 2019';
+our $VERSION = '6.30';
+our $RELEASE = '14 Oct 2019';
 our $SHORTDESCRIPTION = 'Render <nop>WikiApplications asynchronously';
 our $NO_PREFS_IN_TOPIC = 1;
 our $core;
 
 sub initPlugin {
-  $core = undef;
 
   Foswiki::Plugins::JQueryPlugin::registerPlugin('FoswikiTemplate', 'Foswiki::Plugins::RenderPlugin::FoswikiTemplate');
 
@@ -82,6 +82,10 @@ sub initPlugin {
   return 1;
 }
 
+sub modifyHeaderHandler {
+  return getCore()->modifyHeaderHandler(@_);
+}
+
 sub getCore {
   my $session = shift;
 
@@ -93,5 +97,9 @@ sub getCore {
   return $core;
 }
 
+sub finishPlugin {
+  $core->finish() if $core;
+  undef $core;
+}
 
 1;

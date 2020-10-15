@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2008-2017 Michael Daum http://michaeldaumconsulting.com
+# Copyright (C) 2008-2020 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -20,46 +20,53 @@ use warnings;
 
 use Foswiki::Func();
 use Foswiki::Plugins();
+use Foswiki::Validation();
 use Foswiki::Attrs ();
+use JSON ();
+use Error qw(:try);
 
 use constant TRACE => 0; # toggle me
 
-###############################################################################
 sub new {
   my $class = shift;
   my $session = shift || $Foswiki::Plugins::SESSION;
 
   my $this = bless({
     session => $session,
+    cacheControl => $Foswiki::cfg{RenderPlugin}{CacheControl} // 28800,  # 8 hours in seconds
     @_
   }, $class);
+
+  $this->{_doModifyHeaders} = 0;
 
   return $this;
 }
 
-###############################################################################
+sub finish {
+  my $this;
+
+  undef $this->{_json};
+}
+
 sub writeDebug {
   print STDERR '- RenderPlugin - '.$_[0]."\n" if TRACE;
 }
 
-###############################################################################
 sub json {
   my $this = shift;
 
-  unless (defined $this->{json}) {
-    require JSON;
-    $this->{json} = JSON->new->pretty->convert_blessed(1);
+  unless (defined $this->{_json}) {
+    $this->{_json} = JSON->new->allow_nonref(1);
   }
 
-  return $this->{json};
+  return $this->{_json};
 }
 
-###############################################################################
 sub getZoneObject {
   my ($this, $zone, $meta) = @_;
 
   my @zone = ();
-  my $excludeFromZone = $Foswiki::cfg{AngularPlugin}{ExcludeFromZone} || $Foswiki::cfg{RenderPlugin}{ExcludeFromZone};
+  my $excludeFromZone = $Foswiki::cfg{RenderPlugin}{ExcludeFromZone};
 
   foreach my $item (grep { $_->{text} } $this->getZoneItems($zone)) {
     if ($excludeFromZone && $item->{id} =~ /$excludeFromZone/g) {
@@ -72,6 +79,9 @@ sub getZoneObject {
     my $text = $meta->renderTML($meta->expandMacros($item->{text}));
     $text =~ s/\$id/$item->{id}/g;
     $text =~ s/\$zone/$zone/g;
+    $text =~ s/^(\\n|\s+)//g;
+    $text =~ s/(\\n|\s)+$//g;
+
     push @zone, {
       id => $item->{id},
       text => $text,
@@ -82,7 +92,6 @@ sub getZoneObject {
   return \@zone;
 }
 
-###############################################################################
 sub getZoneItems {
   my ($this, $zone) = @_;
 
@@ -108,32 +117,32 @@ sub getZoneItems {
   return @result;
 }
 
-###############################################################################
 sub restTag {
   my ($this, $subject, $verb) = @_;
 
   #writeDebug("called restTag($subject, $verb)");
 
   # get params
-  my $query = Foswiki::Func::getCgiQuery();
+  my $request = Foswiki::Func::getRequestObject();
 
-  my $theTag = $query->param('name') || 'INCLUDE';
-  my $theDefault = $query->param('param') || '';
-  my $theRender = $query->param('render') || 0;
+  my $theTag = $request->param('name') || 'INCLUDE';
+  my $theDefault = $request->param('param') || '';
+  my $theRender = $request->param('render') || 0;
 
   $theRender = ($theRender =~ /^\s*(1|on|yes|true)\s*$/) ? 1:0;
 
-  my $theTopic = $query->param('topic') || $this->{session}{topicName};
-  my $theWeb = $query->param('web') || $this->{session}{webName};
+  my $theTopic = $request->param('topic') || $this->{session}{topicName};
+  my $theWeb = $request->param('web') || $this->{session}{webName};
   my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
   $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
   $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
 
   # construct parameters for tag
   my $params = $theDefault?'"'.$theDefault.'"':'';
-  foreach my $key ($query->param()) {
+  foreach my $key ($request->param()) {
     next if $key =~ /^(name|param|render|topic|XForms:Model)$/;
-    my $value = $query->param($key);
+    my $value = $request->param($key);
+    $value =~ s/"/\\"/g; # add them back in again
     $params .= ' '.$key.'="'.$value.'" ';
   }
 
@@ -152,31 +161,32 @@ sub restTag {
 
   #writeDebug("result=$result");
 
-  my $contentType = $query->param("contenttype");
-  my $fileName = $query->param("filename");
+  my $contentType = $request->param("contenttype");
+  my $fileName = $request->param("filename");
   if ($fileName) {
     $this->{session}{response}->header(
       -type => $contentType || "text/html",
       -content_disposition => "attachment; filename=\"$fileName\"",
     );
   }
+
+  $this->{_doModifyHeaders} = 1;
   $this->{session}->writeCompletePage($result, undef, $contentType);
 
   return;
 }
 
-###############################################################################
 sub restRender {
   my ($this, $subject, $verb) = @_;
 
-  my $query = Foswiki::Func::getCgiQuery();
-  my $theText = $query->param('text') || '';
+  my $request = Foswiki::Func::getRequestObject();
+  my $theText = $request->param('text') || '';
 
   return ' ' unless $theText; # must return at least on char as we get a
                               # premature end of script otherwise
 
-  my $theTopic = $query->param('topic') || $this->{session}{topicName};
-  my $theWeb = $query->param('web') || $this->{session}{webName};
+  my $theTopic = $request->param('topic') || $this->{session}{topicName};
+  my $theWeb = $request->param('web') || $this->{session}{webName};
   my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
   $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
   $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
@@ -185,32 +195,33 @@ sub restRender {
   my $result = Foswiki::Func::expandCommonVariables($theText, $topic, $web) || ' ';
   $result = Foswiki::Func::renderText($result, $web, $topic);
 
-  my $contentType = $query->param("contenttype");
-  my $fileName = $query->param("filename");
+  my $contentType = $request->param("contenttype");
+  my $fileName = $request->param("filename");
   if ($fileName) {
     $this->{session}{response}->header(
       -type => $contentType || "text/html",
       -content_disposition => "attachment; filename=\"$fileName\"",
     );
   }
+
+  $this->{_doModifyHeaders} = 1;
   $this->{session}->writeCompletePage($result, undef, $contentType);
 
   return;
 }
 
-###############################################################################
 sub restExpand {
   my ($this, $subject, $verb) = @_;
 
   # get params
-  my $query = Foswiki::Func::getCgiQuery();
-  my $theText = $query->param('text') || '';
+  my $request = Foswiki::Func::getRequestObject();
+  my $theText = $request->param('text') || '';
 
   return ' ' unless $theText; # must return at least on char as we get a
                               # premature end of script otherwise
 
-  my $theTopic = $query->param('topic') || $this->{session}{topicName};
-  my $theWeb = $query->param('web') || $this->{session}{webName};
+  my $theTopic = $request->param('topic') || $this->{session}{topicName};
+  my $theWeb = $request->param('web') || $this->{session}{webName};
   my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
   $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
   $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
@@ -218,32 +229,33 @@ sub restExpand {
   # expand
   my $result = Foswiki::Func::expandCommonVariables($theText, $topic, $web) || ' ';
 
-  my $contentType = $query->param("contenttype");
-  my $fileName = $query->param("filename");
+  my $contentType = $request->param("contenttype");
+  my $fileName = $request->param("filename");
   if ($fileName) {
     $this->{session}{response}->header(
       -type => $contentType || "text/html",
       -content_disposition => "attachment; filename=\"$fileName\"",
     );
   }
+
+  $this->{_doModifyHeaders} = 1;
   $this->{session}->writeCompletePage($result, undef, $contentType);
 
   return;
 }
 
-###############################################################################
 sub restTemplate {
   my ($this, $subject, $verb) = @_;
 
-  my $query = Foswiki::Func::getCgiQuery();
-  my $theTemplate = $query->param('name');
-  return '' unless $theTemplate;
+  my $request = Foswiki::Func::getRequestObject();
+  my $theTemplate = $request->param('name');
+  throw Error::Simple("no template parameter") unless $theTemplate;
 
-  my $theExpand = $query->param('expand');
-  return '' unless $theExpand;
+  my $theExpand = $request->param('expand');
+  return throw Error::Simple("no expand parameter") unless $theExpand;
 
-  my $theTopic = $query->param('topic') || $this->{session}{topicName};
-  my $theWeb = $query->param('web') || $this->{session}{webName};
+  my $theTopic = $request->param('topic') || $this->{session}{topicName};
+  my $theWeb = $request->param('web') || $this->{session}{webName};
   my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
   $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
   $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
@@ -257,37 +269,38 @@ sub restTemplate {
   my $result = Foswiki::Func::expandCommonVariables($tmpl, $topic, $web) || ' ';
 
   # render
-  my $theRender = Foswiki::Func::isTrue(scalar $query->param('render'),  0);
+  my $theRender = Foswiki::Func::isTrue(scalar $request->param('render'),  0);
   if ($theRender) {
     $result = Foswiki::Func::renderText($result, $web, $topic);
   }
 
-  my $contentType = $query->param("contenttype");
-  my $fileName = $query->param("filename");
+  my $contentType = $request->param("contenttype");
+  my $fileName = $request->param("filename");
   if ($fileName) {
     $this->{session}{response}->header(
       -type => $contentType || "text/html",
       -content_disposition => "attachment; filename=\"$fileName\"",
     );
   }
+  # overwrite cache control
+  $this->{_doModifyHeaders} = 1;
   $this->{session}->writeCompletePage($result, undef, $contentType);
 
   return;
 }
 
-###############################################################################
 sub restJsonTemplate {
   my ($this, $subject, $verb) = @_;
 
-  my $query = Foswiki::Func::getCgiQuery();
-  my $theTemplate = $query->param('name');
-  return '' unless $theTemplate;
+  my $request = Foswiki::Func::getRequestObject();
+  my $theTemplate = $request->param('name');
+  return throw Error::Simple("no name parameter") unless $theTemplate;
 
-  my $theExpand = $query->param('expand');
-  return '' unless $theExpand;
+  my $theExpand = $request->param('expand');
+  return throw Error::Simple("no expand parameter") unless $theExpand;
 
-  my $theTopic = $query->param('topic') || $this->{session}{topicName};
-  my $theWeb = $query->param('web') || $this->{session}{webName};
+  my $theTopic = $request->param('topic') || $this->{session}{topicName};
+  my $theWeb = $request->param('web') || $this->{session}{webName};
   my ($web, $topic) = Foswiki::Func::normalizeWebTopicName($theWeb, $theTopic);
   $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
   $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
@@ -296,7 +309,6 @@ sub restJsonTemplate {
 
   Foswiki::Func::loadTemplate($theTemplate);
 
-  require Foswiki::Attrs;
   my $attrs = new Foswiki::Attrs($theExpand);
 
   my $tmpl = $this->{session}->templates->tmplP($attrs);
@@ -310,23 +322,53 @@ sub restJsonTemplate {
   };
 
   # render
-  my $theRender = Foswiki::Func::isTrue(scalar $query->param('render'),  0);
+  my $theRender = Foswiki::Func::isTrue(scalar $request->param('render'),  0);
   if ($theRender) {
     $result->{expand} = Foswiki::Func::renderText($result->{expand}, $web, $topic);
   }
+  $result->{expand} =~ s/^(\\n|\s+)//g;
+  $result->{expand} =~ s/(\\n|\s)+$//g;
+
+  # inject validation
+  my $cgis = $this->{session}->getCGISession();
+  my $response = $this->{session}{response};
+
+  if ($cgis && $Foswiki::cfg{Validation}{Method} ne 'none') {
+    my $context = $request->url(-full => 1, -path => 1, -query => 1) . time();
+
+    $result->{expand} =~ s/(<form[^>]*method=['"]POST['"][^>]*>)/Foswiki::Validation::addOnSubmit($1)/gei;
+    $result->{expand} =~ s/(<form[^>]*method=['"]POST['"][^>]*>)/$1 . Foswiki::Validation::addValidationKey($cgis, $context, 1)/gei;
+
+    $response->pushHeader('X-Foswiki-Validation', Foswiki::Validation::generateValidationKey($cgis, $context, 1));
+  }
 
   # expand zones
-  my $theZones = $query->param('zones') || '';
+  my $theZones = $request->param('zones') || '';
   foreach my $id (split(/\s*,\s*/, $theZones)) {
     $result->{zones}{$id} = $this->getZoneObject($id, $meta);
   }
 
-  my $data = $this->json->encode($result);
+  my $data = $this->json->pretty->encode($result);
+  my $charSet = $Foswiki::cfg{Site}{CharSet}//'utf-8';
 
-  $this->{session}{response}->header(-'Content-Type' => "application/json; charset=$Foswiki::cfg{Site}{CharSet}");
-  $this->{session}->writeCompletePage($data, undef, "application/json; charset=$Foswiki::cfg{Site}{CharSet}");
+  $response->header(-'Content-Type' => "application/json; charset=$charSet");
+  $this->{_doModifyHeaders} = 1;
+  $this->{session}->writeCompletePage($data, undef, "application/json; charset=$charSet");
 
   return;
 }
+
+sub modifyHeaderHandler {
+  my ($this, $headers, $query) = @_;
+
+  return unless $this->{_doModifyHeaders};
+
+  my $request = Foswiki::Func::getRequestObject();
+  my $cacheControl = 'max-age='. ($request->param("cachecontrol") // $this->{cacheControl});
+
+  # set a better cache control
+  $headers->{"Cache-Control"} = $cacheControl if $cacheControl;
+}
+
 
 1;

@@ -1,13 +1,17 @@
-%META:TOPICINFO{author="ProjectContributor" comment="" date="1550135056" format="1.1" version="1"}%
+%META:TOPICINFO{author="micha" comment="reprev" date="1570782564" format="1.1" reprev="2" version="2"}%
 ---+!! %TOPIC%
 %FORMFIELD{"Description"}%
 
 %TOC%
 
 ---++ Description
-This plugin implements three simple REST handlers to get content from Foswiki.
-For example, these can be used to easily replace a server-side INCLUDE with a
-functional equivalent using an ajax call to one of these REST handlers. 
+
+This plugin implements a couple of REST handlers to feetch content from a Foswiki backend.
+This can either be returned as plain content (via the =template= handler) or encoded in a JSON object that logs required
+css and js in addition to the content block (via the =jsonTemplate= handler).
+
+These can be used to easily replace a server-side INCLUDE with a
+functional equivalent using a javascript call to one of these REST handlers. 
 
 This comes in handy to asynchronously load content in a tabbed interface,
 loading subsequent content for a treeview, a menu widget, or tooltips.
@@ -47,18 +51,22 @@ The available REST handlers are:
 | =jsonTemplate= | =name=, %BR%, =expand=, %BR% =render= | same as =template= handler, but returns a json object holding css and js zones required to properly format the template; used via =foswiki.loadTemplate()= |
 
 ---++ Usage
+
 The REST handlers are called like this:
-<verbatim>
+
+<verbatim class="tml">
 %SCRIPTURLPATH{"rest"}%/RenderPlugin/render?text=%ENCODE{"This is _very_ cool."}%
 </verbatim>
 
-<verbatim>
+<verbatim class="tml">
 %SCRIPTURLPATH{"rest"}%/RenderPlugin/tag?name=INCLUDE;param=Applications.RenderWebTagCloud;search=screenshot
 </verbatim>
+
 (equivalent to a =%<nop>INCLUDE{"Applications.RenderWebTagCloud" search="screenshot"}%=)
 
 This can be schedule using jQuery like this:
-<verbatim>
+
+<verbatim class="tml">
 <div id="container"></div>
 
 <literal>
@@ -69,10 +77,84 @@ jQuery(function($) {
 </script>
 </verbatim>
 
+---++ <nop>foswiki.loadTemplate: <nop>JavaScript API to load JSON content
+
+The =foswiki.loadTemplate()= function can be used to load content from the backend using the =jsonTemplate= handler and inject it into the current DOM
+including all <nop>JavaScript and CSS as required by the collected content (via =Foswiki::Func::addToZone()= or =%JQREQUIRE= or =%ADDZOZONE=). These additional assets
+will be added to the respective zones of the page if not already present.
+
+| *Parameter* | *Description* | *Defaults* | 
+| name | name of the template to load (required) | |
+| expand | name of the TMPL:DEF to expand (required) | |
+| topic | Foswiki address from where to process the response | current web.topic |
+| url | url from where to load content | %SCRIPTURLPATH{"rest"}%/RenderPlugin/jsonTemplate |
+| debug | boolean switch to enable debug output on the conosole | false |
+| render | switch on TML rendering on the backend | on |
+| zones | list of zones to return | script, head |
+| async | boolean flag to add the =async= attribute to script and style assets  | false |
+| cachecontrol | caching behaviour of loaded content: specifies the number of seconds the returned JSON content is to be cached by the browser  | 0 |
+| ... | any other parameter is passed to the REST handler as is | |
+
+Note that =foswiki.loadTemplate() returns a jqXHR promise:
+
+<verbatim class="js">
+foswiki.loadTemplate({
+  "name": "user",
+  "expand": "photo"
+  "topic": foswiki.getPreference("WIKIUSERNAME")
+}).done(function(data) {
+  var $content = $(data.expand);
+  $(body).append($content);
+});
+</verbatim>
+
+---++ foswikiDialogLink: load jQuery dialogs as JSON content
+
+While JQueryPlugin comes with a dialog loader of its own, it lacks the additional handling of assets required to render
+the dialog properly, i.e. <nop>JavaScript to initialize it. This is mitigated using the CSS class =foswikiDialogLink= on
+an anchor element or any other clickable button.
+
+Example:
+
+Add 
+
+<verbatim class="tml">
+%JQREQUIRE{"FoswikiTemplate"}%
+</verbatim>
+
+to process all =foswikiDialogLink= elements of the current page.
+
+such as
+
+<verbatim class="html">
+<a href="#backlinks" class="foswikiDialogLink">Display backlinks of the current topic</a>
+</verbatim>
+
+If a user clicks on this link will it 
+load the =backlinks= template and return the =TMPL:DEF{"dialog"}= definition as a JSON object
+inject the dialog into the page and open it.
+
+The =backlinks.tmpl= content must have a =jqUIDialog= definition similar to:
+
+<verbatim class="tml">
+%TMPL:DEF{"dialog"}%<div class="jqUIDialog" data-modal="true" data-height="600" data-width="930" data-draggable="true" data-resizable="true" title="Backlinks to <nop>%WEB%.%TOPIC%">
+...
+<a class="jqUIDialogButton jqUIDialogClose" data-icon="ui-icon-cancel">%MAKETEXT{"Close"}%</a>
+</div>%TMPL:END%
+</verbatim>
+
+Note, the =foswikiDialogLink= can be customized using HTML5 data parameters such as in:
+
+<verbatim class="html">
+<a class="foswikiDialogLink" data-name="..." data-expand="..." data-...>Click me</a>
+</verbatim>
+
+See the list of parameters for the =foswiki.loadTemplate()=  API.
+
 ---++ Examples
 
 ---+++ Fetching a message 
-<verbatim>
+<verbatim class="tml">
 %STARTSECTION{"message"}%
 *Hello World!* :)
 %ENDSECTION{"message"}%
@@ -85,48 +167,69 @@ jQuery(function($) {
 
 <literal>
 <script>
-function getTheMessage() {
-  jQuery("#message").load(
-    "%SCRIPTURLPATH{"rest"}%/%TOPIC%/tag",
-    { 
-      name: 'INCLUDE',
-      param: '%WEB%.%TOPIC%',
-      section: 'message',
-      render: true
-    }, 
-    function () {
-      jQuery(this).show()
-    });
-}
-function clearTheMessage() {
-  jQuery("#message").empty().hide();
-}
+jQuery(function($) {
+  function getTheMessage() {
+    $("#message").load(
+      "%SCRIPTURLPATH{"rest"}%/%TOPIC%/tag",
+      { 
+        name: 'INCLUDE',
+        param: '%WEB%.%TOPIC%',
+        section: 'message',
+        render: true
+      }, 
+      function () {
+        $(this).show()
+      });
+  }
+  function clearTheMessage() {
+    $("#message").empty().hide();
+  }
+});
 </script>
 </literal>
 
 ---+++ Previewing TML
-<div class="foswikiPageForm">
-<form>
-<textarea id="mytext" name="text" rows="5" columns="80" style="width:100%"></textarea>
-
-<input type="button" value="Preview" onclick="preview()" />
-</form>
+<div class="foswikiPageForm" style="display:flex">
+<textarea class="wikiText" style="width:50%;margin-right:2em;" rows="5" data-target="#previewResults" placeholder="type some wiki text, then wait a moment"></textarea>
+<div id="previewResults" style="width:50%">
 </div>
 
-<div id="mypreview" style="border:1px solid #eee;padding:5px">
 </div>
 
 <literal>
 <script>
-function preview() {
-  var text = jQuery("#mytext").val();
-  jQuery("#mypreview").load("%SCRIPTURLPATH{"rest"}%/RenderPlugin/render",
-    {
-      'text': text,
-      'topic': '%WEB%.%TOPIC%'
-    }
-  );
-}
+jQuery(function($) {
+  $(".wikiText").each(function() {
+    var $this = $(this), 
+        $target = $($this.data("target")),
+        timer, xhr,
+        url = foswiki.getScriptUrl("rest", "RenderPlugin", "render"),
+        topic = foswiki.getPreference("WEB")+"."+foswiki.getPreference("TOPIC");
+
+    $this.on("keyup", function() {
+      if (timer) {
+         window.clearTimeout(timer);
+           if (xhr) {
+              xhr.abort();
+              }
+      }
+
+      timer = window.setTimeout(function() {
+         var val = $this.val().replace(/\</g, "&lt;").replace(/\>/g, "&gt;");
+         xhr = $.ajax({
+            'url': url,
+            'type': 'post',
+            data: {
+               'topic': topic,
+               'text': val
+            }
+         }).done(function(data) {
+            $target.html(data);
+         });
+      }, 750);
+    });
+  });
+});
 </script>
 </literal>
 
@@ -140,6 +243,8 @@ Okay, your turn to create an example calling SEARCH.
 
 ---++ Change History
 %TABLE{columnwidths="7em" tablewidth="100%"}%
+|  14 Oct 2020: | improved cacheability of rest handlers; \
+                  new class =foswikiDialogLink= to ease creating dialogs |
 |  14 Feb 2019: | make template loader available to javascript as a proper jQuery module | 
 |  16 Jan 2017: | added =filename= to rest handler to override it in the content-dispisition header |
 |  29 Apr 2016: | added support for newer Foswiki engines |
@@ -156,11 +261,11 @@ Okay, your turn to create an example calling SEARCH.
 
 %META:FORM{name="PackageForm"}%
 %META:FIELD{name="Author" title="Author" value="Michael Daum"}%
-%META:FIELD{name="Copyright" title="Copyright" value="2006-2017, Michael Daum http://michaeldaumconsulting.com"}%
+%META:FIELD{name="Version" title="Version" value="%25$VERSION%25"}%
+%META:FIELD{name="Release" title="Release" value="%25$RELEASE%25"}%
 %META:FIELD{name="Description" title="Description" value="%25$SHORTDESCRIPTION%25"}%
-%META:FIELD{name="Home" title="Home" value="Foswiki:Extensions/%TOPIC%"}%
-%META:FIELD{name="License" title="License" value="GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]])"}%
-%META:FIELD{name="Release" title="Release" value="%$RELEASE%"}%
 %META:FIELD{name="Repository" title="Repository" value="https://github.com/foswiki/RenderPlugin"}%
-%META:FIELD{name="Support" title="Support" value="Foswiki:Support/%TOPIC%"}%
-%META:FIELD{name="Version" title="Version" value="%$VERSION%"}%
+%META:FIELD{name="Copyright" title="Copyright" value="2006-2020, Michael Daum"}%
+%META:FIELD{name="License" title="License" value="GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]])"}%
+%META:FIELD{name="Home" title="Home" value="Foswiki:Extensions/%25TOPIC%25"}%
+%META:FIELD{name="Support" title="Support" value="Foswiki:Support/%25TOPIC%25"}%
