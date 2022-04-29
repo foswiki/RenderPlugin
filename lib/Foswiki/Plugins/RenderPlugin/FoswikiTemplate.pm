@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2019 Michael Daum, http://michaeldaumconsulting.com
+# Copyright (C) 2019-2022 Michael Daum, http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@ sub new {
     $class->SUPER::new(
       $session,
       name => 'FoswikiTemplate',
-      version => '2.2',
+      version => '3.0',
       author => 'Michael Daum',
       homepage => 'https://foswiki.org/Extensions/RenderPlugin',
       puburl => '%PUBURLPATH%/%SYSTEMWEB%/RenderPlugin',

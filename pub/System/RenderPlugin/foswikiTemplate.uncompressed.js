@@ -1,11 +1,12 @@
 /*
- * foswiki template loader 2.21
+ * foswiki template loader 3.00
  *
- * (c)opyright 2015-2020 Michael Daum http://michaeldaumconsulting.com
+ * (c)opyright 2015-2022 Michael Daum http://michaeldaumconsulting.com
  *
  * Licensed under the GPL license http://www.gnu.org/licenses/gpl.html
  *
  */
+"use strict";
 (function($) {
 
   /***************************************************************************
@@ -42,8 +43,8 @@
     delete self.opts.error;
     delete self.opts.url;
 
-    self.log("opts=",opts);
-  };
+    //self.log("opts=",opts);
+  }
 
   /***************************************************************************
    * logging
@@ -71,12 +72,12 @@
       data: self.opts,
       dataType: "json",
       success: function(data, status, xhr) {
-        self.log("data=",data);
+        //self.log("data=",data);
         self.processZones(data.zones);
         self.successFunc(data.expand, status, xhr);
       },
-      error: function(xhr, status, error) {
-        var response = xhr.responseText.replace(/^ERROR: .*\- /, "").replace(/ at .*/, "");
+      error: function(xhr) {
+        var response = xhr.responseText.replace(/^ERROR: .*- /, "").replace(/ at .*/, "");
         self.errorFunc(response);
       } 
     });
@@ -88,32 +89,58 @@
   FoswikiTemplate.prototype.processZones = function(zones) {
     var self = this;
 
-    $.each(zones, function(zoneName) {
-        var zone = zones[zoneName],
-            zonePos = $("."+zoneName).last(), text;
+    Object.keys(zones).forEach(function(zoneName) {
+      var zone = {}, seen = {}, sortedItems = [];
 
-      $.each(zone, function(i) {
-        var item = zone[i],
-            selector = "."+zoneName+"."+item.id.replace(/([^a-zA-Z0-9_\-])/g, '\\$1');
-
-        if (!item.id.match(/^(JQUERYPLUGIN::FOSWIKI::PREFERENCES)?$/)) {
-          if ($(selector).length > 0) {
-            //self.log("zone=",zoneName,"item ",item.id+" already loaded");
-          } else {
-            text = item.text;
-            if (self.opts.async) {
-              text = item.text.replace(/<script /g, "<script async ");
-            } else {
-              text = item.text;
-            }
-            self.log("... loading ",item.id,"to zone",zoneName);
-            self.log("text=",text);
-            zonePos.after(text);
-          }
+      self.log("processing zone ",zoneName);
+        
+      // hash the zone items
+      zones[zoneName].forEach(function(item) {
+        var selector = $("."+zoneName+"."+item.id.replace(/([^a-zA-Z0-9_-])/g, '\\$1'));
+        if (item.id !== 'JQUERYPLUGIN::FOSWIKI::PREFERENCES' && selector.length === 0) {
+          zone[item.id] = item;
         }
+      });
+
+      // collect all items
+      Object.keys(zone).forEach(function(id) {
+        _visitZoneItem(zone[id], zone, seen, sortedItems);
+      });
+
+      //self.log("sortedItems=",sortedItems);
+
+      // process all items
+      sortedItems.forEach(function(item) {
+        var text = item.text;
+
+        if (self.opts.async) {
+          text = item.text.replace(/<script /g, "<script async ");
+        } else {
+          text = item.text;
+        }
+
+        self.log("... loading ",item.id);
+        //self.log("... text=",text);
+
+        $("."+zoneName).last().after(text);
       });
     });
   };
+
+  function _visitZoneItem(item, zone, seen, result) {
+
+    if (typeof(item) === 'undefined' || seen[item.id]) {
+      return;
+    }
+    seen[item.id] = 1;
+
+    item.requires.forEach(function( id) {
+      _visitZoneItem(zone[id], zone, seen, result);
+    });
+
+    //console.log("adding item",item.id);
+    result.push(item);
+  }
 
   /***************************************************************************
    * export

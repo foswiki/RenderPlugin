@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2008-2020 Michael Daum http://michaeldaumconsulting.com
+# Copyright (C) 2008-2022 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -33,11 +33,15 @@ sub new {
 
   my $this = bless({
     session => $session,
+    allowedTags => $Foswiki::cfg{RenderPlugin}{TagHandler}{AllowedMacros} // '',
     cacheControl => $Foswiki::cfg{RenderPlugin}{CacheControl} // 28800,  # 8 hours in seconds
     @_
   }, $class);
 
   $this->{_doModifyHeaders} = 0;
+
+  my %allowedTags = map { $_=> 1 } split(/\s*,\s*/, $this->{allowedTags});
+  $this->{allowedTags} = \%allowedTags;
 
   return $this;
 }
@@ -117,6 +121,22 @@ sub getZoneItems {
   return @result;
 }
 
+sub registerAllowedTag {
+  my ($this, $name) = @_;
+
+  return unless $name;
+
+  $this->{allowedTags}{$name} = 1;
+}
+
+sub isAllowedTag {
+  my ($this, $name) = @_;
+
+  return 1 if $this->{allowedTags}{all};
+  return 1 if $this->{allowedTags}{$name};
+  return 0;
+}
+
 sub restTag {
   my ($this, $subject, $verb) = @_;
 
@@ -124,11 +144,17 @@ sub restTag {
 
   # get params
   my $request = Foswiki::Func::getRequestObject();
-
+  my $response = $this->{session}{response};
   my $theTag = $request->param('name') || 'INCLUDE';
+
+  unless ($this->isAllowedTag($theTag)) {
+    Foswiki::Func::writeWarning("tag REST handler called with forbidden macro");
+    $response->header( -type => 'text/html', -status => '404' );
+    return '404 Not Found';
+  }
+
   my $theDefault = $request->param('param') || '';
   my $theRender = $request->param('render') || 0;
-
   $theRender = ($theRender =~ /^\s*(1|on|yes|true)\s*$/) ? 1:0;
 
   my $theTopic = $request->param('topic') || $this->{session}{topicName};
@@ -164,7 +190,7 @@ sub restTag {
   my $contentType = $request->param("contenttype");
   my $fileName = $request->param("filename");
   if ($fileName) {
-    $this->{session}{response}->header(
+    $response->header(
       -type => $contentType || "text/html",
       -content_disposition => "attachment; filename=\"$fileName\"",
     );
@@ -274,11 +300,11 @@ sub restTemplate {
     $result = Foswiki::Func::renderText($result, $web, $topic);
   }
 
-  my $contentType = $request->param("contenttype");
+  my $contentType = $request->param("contenttype") || "text/html";
   my $fileName = $request->param("filename");
   if ($fileName) {
     $this->{session}{response}->header(
-      -type => $contentType || "text/html",
+      -type => $contentType,
       -content_disposition => "attachment; filename=\"$fileName\"",
     );
   }
@@ -364,7 +390,8 @@ sub modifyHeaderHandler {
   return unless $this->{_doModifyHeaders};
 
   my $request = Foswiki::Func::getRequestObject();
-  my $cacheControl = 'max-age='. ($request->param("cachecontrol") // $this->{cacheControl});
+  my $cacheControl = $request->param("cachecontrol") // $request->param("cache_expire") // $this->{cacheControl};
+  $cacheControl = "max-age=$cacheControl" if $cacheControl =~ /^\d+$/;
 
   # set a better cache control
   $headers->{"Cache-Control"} = $cacheControl if $cacheControl;
