@@ -1,7 +1,7 @@
 /*
- * foswiki template loader 3.00
+ * foswiki template loader 3.20
  *
- * (c)opyright 2015-2022 Michael Daum http://michaeldaumconsulting.com
+ * (c)opyright 2015-2024 Michael Daum http://michaeldaumconsulting.com
  *
  * Licensed under the GPL license http://www.gnu.org/licenses/gpl.html
  *
@@ -71,6 +71,7 @@
       async: true,
       data: self.opts,
       dataType: "json",
+      type: "post",
       success: function(data, status, xhr) {
         //self.log("data=",data);
         self.processZones(data.zones);
@@ -92,7 +93,7 @@
     Object.keys(zones).forEach(function(zoneName) {
       var zone = {}, seen = {}, sortedItems = [];
 
-      self.log("processing zone ",zoneName);
+      //self.log("processing zone ",zoneName);
         
       // hash the zone items
       zones[zoneName].forEach(function(item) {
@@ -119,7 +120,8 @@
           text = item.text;
         }
 
-        self.log("... loading ",item.id);
+
+        self.log("... loading ",_unrot13(item.id));
         //self.log("... text=",text);
 
         $("."+zoneName).last().after(text);
@@ -140,6 +142,11 @@
 
     //console.log("adding item",item.id);
     result.push(item);
+  }
+
+  const alpha = 'MLKJIHGFEDCBAZYXWVUTSRQPONMLKJIHGFEDCBAmlkjihgfedcbazyxwvutsrqponmlkjihgfedcba';
+  function _unrot13(text) {
+    return text.replace(/[a-z]/gi, c => alpha[alpha.indexOf(c) + 13]);
   }
 
   /***************************************************************************

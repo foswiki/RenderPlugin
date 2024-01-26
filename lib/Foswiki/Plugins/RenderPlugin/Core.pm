@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2008-2022 Michael Daum http://michaeldaumconsulting.com
+# Copyright (C) 2008-2024 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -81,13 +81,18 @@ sub getZoneObject {
     my @requires = map { $_->{id} } @{$item->{requires}};
 
     my $text = $meta->renderTML($meta->expandMacros($item->{text}));
-    $text =~ s/\$id/$item->{id}/g;
+    my $id = $item->{id};
+    if ($Foswiki::Plugins::VERSION > 2.4 && $Foswiki::cfg{ObfuscateZoneIDs}) {
+      $id =~ tr/N-ZA-Mn-za-m/A-Za-z/; # obfuscate ids
+    }
+
+    $text =~ s/\$id/$id/g;
     $text =~ s/\$zone/$zone/g;
     $text =~ s/^(\\n|\s+)//g;
     $text =~ s/(\\n|\s)+$//g;
 
     push @zone, {
-      id => $item->{id},
+      id => $id,
       text => $text,
       requires => \@requires,
     };
@@ -110,6 +115,7 @@ sub getZoneItems {
     $zonesHandler = $session;
   }
 
+  # SMELL: violates encapsulation of Foswiki::Render::Zones
   my @zoneItems = values %{$zonesHandler->{_zones}{$zone}};
   my %visited = ();
   my @result = ();
@@ -286,7 +292,7 @@ sub restTemplate {
   $web = Foswiki::Sandbox::untaint($web, \&Foswiki::Sandbox::validateWebName);
   $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
 
-  Foswiki::Func::loadTemplate($theTemplate);
+  Foswiki::Func::readTemplate($theTemplate);
   my $attrs = new Foswiki::Attrs($theExpand);
 
   my $tmpl = $this->{session}->templates->tmplP($attrs);
@@ -333,7 +339,7 @@ sub restJsonTemplate {
 
   my ($meta) = Foswiki::Func::readTopic($web, $topic);
 
-  Foswiki::Func::loadTemplate($theTemplate);
+  Foswiki::Func::readTemplate($theTemplate);
 
   my $attrs = new Foswiki::Attrs($theExpand);
 
@@ -354,6 +360,7 @@ sub restJsonTemplate {
   }
   $result->{expand} =~ s/^(\\n|\s+)//g;
   $result->{expand} =~ s/(\\n|\s)+$//g;
+  $result->{expand} =~ s/\0NOTOC2\0//g;
 
   # inject validation
   my $cgis = $this->{session}->getCGISession();
@@ -396,6 +403,5 @@ sub modifyHeaderHandler {
   # set a better cache control
   $headers->{"Cache-Control"} = $cacheControl if $cacheControl;
 }
-
 
 1;
