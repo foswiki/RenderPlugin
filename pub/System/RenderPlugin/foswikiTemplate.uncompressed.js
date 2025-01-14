@@ -1,7 +1,7 @@
 /*
- * foswiki template loader 3.20
+ * foswiki template loader 3.30
  *
- * (c)opyright 2015-2024 Michael Daum http://michaeldaumconsulting.com
+ * (c)opyright 2015-2025 Michael Daum http://michaeldaumconsulting.com
  *
  * Licensed under the GPL license http://www.gnu.org/licenses/gpl.html
  *
@@ -39,6 +39,10 @@
     self.errorFunc = self.opts.error;
     self.url = self.opts.url || foswiki.getScriptUrl("rest", "RenderPlugin", "jsonTemplate");
 
+    if (foswiki.eventClient && !self.opts.clientId) {
+      self.opts.clientId = foswiki.eventClient.id;
+    }
+
     delete self.opts.success;
     delete self.opts.error;
     delete self.opts.url;
@@ -74,8 +78,8 @@
       type: "post",
       success: function(data, status, xhr) {
         //self.log("data=",data);
+        self.successFunc(data.expand, status, xhr); // SMELL: unfortunate api ... should pass all of data
         self.processZones(data.zones);
-        self.successFunc(data.expand, status, xhr);
       },
       error: function(xhr) {
         var response = xhr.responseText.replace(/^ERROR: .*- /, "").replace(/ at .*/, "");
@@ -168,8 +172,11 @@
           expand: "dialog"
         }, $this.data());
 
+    $("body").css("cursor", "progress");
     foswiki.loadTemplate(opts).done(function(data) {
       var $content = $(data.expand);
+
+      $("body").css("cursor", "default");
 
       $content.hide();
       $("body").append($content);

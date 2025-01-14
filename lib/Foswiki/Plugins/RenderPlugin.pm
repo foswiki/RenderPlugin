@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2008-2024 Michael Daum http://michaeldaumconsulting.com
+# Copyright (C) 2008-2025 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@ use Foswiki::Attrs() ;
 use Foswiki::Plugins::JQueryPlugin ();
 use Encode ();
 
-our $VERSION = '7.00';
+our $VERSION = '7.01';
 our $RELEASE = '%$RELEASE%';
 our $SHORTDESCRIPTION = 'Render <nop>WikiApplications asynchronously';
 our $LICENSECODE = '%$LICENSECODE%';

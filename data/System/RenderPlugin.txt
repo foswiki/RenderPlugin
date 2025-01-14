@@ -1,4 +1,4 @@
-%META:TOPICINFO{author="ProjectContributor" comment="reprev" date="1655478401" format="1.1" version="1"}%
+%META:TOPICINFO{author="ProjectContributor" comment="" date="1736876619" format="1.1" version="1"}%
 ---+!! %TOPIC%
 %FORMFIELD{"Description"}%
 
@@ -247,6 +247,7 @@ Okay, your turn to create an example calling SEARCH.
 
 ---++ Change History
 %TABLE{columnwidths="7em" tablewidth="100%"}%
+|  14 Jan 2025: | imroved performance of renderer; added support for !WebSocketPlugin |
 |  26 Jan 2024: | added support for id obfuscation |
 |  29 Apr 2022: | deprecated =expand= and =render= REST handler, added whitelist of allowed macros to =tag= REST handler |
 |  14 Oct 2020: | improved cacheability of rest handlers; \
@@ -271,7 +272,7 @@ Okay, your turn to create an example calling SEARCH.
 %META:FIELD{name="Release" title="Release" value="%25$RELEASE%25"}%
 %META:FIELD{name="Description" title="Description" value="%25$SHORTDESCRIPTION%25"}%
 %META:FIELD{name="Repository" title="Repository" value="https://github.com/foswiki/RenderPlugin"}%
-%META:FIELD{name="Copyright" title="Copyright" value="2006-2024, Michael Daum"}%
+%META:FIELD{name="Copyright" title="Copyright" value="2006-2025, Michael Daum"}%
 %META:FIELD{name="License" title="License" value="GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]])"}%
 %META:FIELD{name="Home" title="Home" value="Foswiki:Extensions/%25TOPIC%25"}%
 %META:FIELD{name="Support" title="Support" value="Foswiki:Support/%25TOPIC%25"}%

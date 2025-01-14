@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2008-2024 Michael Daum http://michaeldaumconsulting.com
+# Copyright (C) 2008-2025 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -186,10 +186,10 @@ sub restTag {
   #writeDebug("tml=$tml");
 
   # and render it
-  my $result = Foswiki::Func::expandCommonVariables($tml, $topic, $web) || ' ';
-  if ($theRender) {
-    $result = Foswiki::Func::renderText($result, $web, $topic);
-  }
+  my $result = $tml;
+  $result = Foswiki::Func::expandCommonVariables($tml, $topic, $web) if $result =~ /%/;
+  $result //= "";
+  $result = Foswiki::Func::renderText($result, $web, $topic) if $theRender;
 
   #writeDebug("result=$result");
 
@@ -224,7 +224,9 @@ sub restRender {
   $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
 
   # expand and render
-  my $result = Foswiki::Func::expandCommonVariables($theText, $topic, $web) || ' ';
+  my $result = $theText;
+  $result = Foswiki::Func::expandCommonVariables($result, $topic, $web) if $result =~ /%/;
+  $result //= "";
   $result = Foswiki::Func::renderText($result, $web, $topic);
 
   my $contentType = $request->param("contenttype");
@@ -259,7 +261,9 @@ sub restExpand {
   $topic = Foswiki::Sandbox::untaint($topic, \&Foswiki::Sandbox::validateTopicName);
 
   # expand
-  my $result = Foswiki::Func::expandCommonVariables($theText, $topic, $web) || ' ';
+  my $result = $theText;
+  $result = Foswiki::Func::expandCommonVariables($theText, $topic, $web) if $result =~ /%/;
+  $result //= "";
 
   my $contentType = $request->param("contenttype");
   my $fileName = $request->param("filename");
@@ -298,7 +302,9 @@ sub restTemplate {
   my $tmpl = $this->{session}->templates->tmplP($attrs);
 
   # expand
-  my $result = Foswiki::Func::expandCommonVariables($tmpl, $topic, $web) || ' ';
+  my $result = $tmpl;
+  $result = Foswiki::Func::expandCommonVariables($result, $topic, $web) if $result =~ /%/;
+  $result //= "";
 
   # render
   my $theRender = Foswiki::Func::isTrue(scalar $request->param('render'),  0);
@@ -344,12 +350,13 @@ sub restJsonTemplate {
   my $attrs = new Foswiki::Attrs($theExpand);
 
   my $tmpl = $this->{session}->templates->tmplP($attrs);
+  $tmpl = Foswiki::Func::expandCommonVariables($tmpl, $topic, $web, $meta) if $tmpl =~ /%/;
 
   # expand
   my $result = {
     web => $web,
     topic => $topic,
-    expand => Foswiki::Func::expandCommonVariables($tmpl, $topic, $web, $meta) || ' ',
+    expand => $tmpl,
     zones => {},
   };
 
