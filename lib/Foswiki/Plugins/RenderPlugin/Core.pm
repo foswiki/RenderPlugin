@@ -1,6 +1,6 @@
 # Plugin for Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2008-2025 Michael Daum http://michaeldaumconsulting.com
+# Copyright (C) 2008-2026 Michael Daum http://michaeldaumconsulting.com
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -190,6 +190,7 @@ sub restTag {
   $result = Foswiki::Func::expandCommonVariables($tml, $topic, $web) if $result =~ /%/;
   $result //= "";
   $result = Foswiki::Func::renderText($result, $web, $topic) if $theRender;
+  $result =~ s/<\/?(noautolink|literal|sticky|nop)>//g;
 
   #writeDebug("result=$result");
 
@@ -228,6 +229,7 @@ sub restRender {
   $result = Foswiki::Func::expandCommonVariables($result, $topic, $web) if $result =~ /%/;
   $result //= "";
   $result = Foswiki::Func::renderText($result, $web, $topic);
+  $result =~ s/<\/?(noautolink|literal|sticky|nop)>//g;
 
   my $contentType = $request->param("contenttype");
   my $fileName = $request->param("filename");
@@ -308,9 +310,8 @@ sub restTemplate {
 
   # render
   my $theRender = Foswiki::Func::isTrue(scalar $request->param('render'),  0);
-  if ($theRender) {
-    $result = Foswiki::Func::renderText($result, $web, $topic);
-  }
+  $result = Foswiki::Func::renderText($result, $web, $topic) if $theRender;
+  $result =~ s/<\/?(noautolink|literal|sticky|nop)>//g;
 
   my $contentType = $request->param("contenttype") || "text/html";
   my $fileName = $request->param("filename");
@@ -362,9 +363,9 @@ sub restJsonTemplate {
 
   # render
   my $theRender = Foswiki::Func::isTrue(scalar $request->param('render'),  0);
-  if ($theRender) {
-    $result->{expand} = Foswiki::Func::renderText($result->{expand}, $web, $topic);
-  }
+  $result->{expand} = Foswiki::Func::renderText($result->{expand}, $web, $topic) if $theRender;
+  $result->{expand} =~ s/<\/?(noautolink|literal|sticky|nop)>//g;
+
   $result->{expand} =~ s/^(\\n|\s+)//g;
   $result->{expand} =~ s/(\\n|\s)+$//g;
   $result->{expand} =~ s/\0NOTOC2\0//g;
