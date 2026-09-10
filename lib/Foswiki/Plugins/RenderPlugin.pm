@@ -24,7 +24,7 @@ use Foswiki::Attrs() ;
 use Foswiki::Plugins::JQueryPlugin ();
 use Encode ();
 
-our $VERSION = '7.01';
+our $VERSION = '7.02';
 our $RELEASE = '%$RELEASE%';
 our $SHORTDESCRIPTION = 'Render <nop>WikiApplications asynchronously';
 our $LICENSECODE = '%$LICENSECODE%';
